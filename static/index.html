@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎨 ArtVision AI | Discover Art Masterpieces with Cloudflare Workers AI and Vectorize</title>
+    <style>
+        :root {
+            --primary: #6a4c93;
+            --secondary: #8a5a44;
+            --accent: #f8a5c2;
+            --light: #f7f1e3;
+            --dark: #3d3d3d;
+        }
+        
+        body {
+            font-family: 'Georgia', serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0;
+            background-color: #f9f7f5;
+            color: var(--dark);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background-image: url('https://images.unsplash.com/photo-1579547945413-497e1b99dac0?w=500&auto=format&fit=crop');
+            background-size: cover;
+            background-attachment: fixed;
+            background-blend-mode: overlay;
+            background-color: rgba(249, 247, 245, 0.9);
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            border-radius: 0 0 20px 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        h2 {
+            color: var(--primary);
+            border-bottom: 2px dashed var(--accent);
+            padding-bottom: 0.5rem;
+            display: inline-block;
+        }
+        
+        .section {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            margin: 1rem;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        
+        input, textarea {
+            padding: 12px;
+            margin: 8px 0;
+            border: 2px solid var(--primary);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 16px;
+            width: 100%;
+            box-sizing: border-box;
+            transition: all 0.3s;
+        }
+        
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(248, 165, 194, 0.3);
+        }
+        
+        button {
+            padding: 14px 24px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1rem;
+            margin-top: 1rem;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+        }
+        
+        .results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        .art-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .art-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 12px 20px rgba(0,0,0,0.15);
+        }
+        
+        .art-card img {
+            width: 100%;
+            height: 280px;
+            object-fit: cover;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .art-info {
+            padding: 20px;
+        }
+        
+        .art-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+        
+        .art-description {
+            font-size: 0.95em;
+            color: var(--dark);
+            margin-bottom: 12px;
+            line-height: 1.6;
+        }
+        
+        .art-score {
+            font-size: 0.9em;
+            color: var(--secondary);
+            font-weight: bold;
+            background: rgba(138, 90, 68, 0.1);
+            padding: 5px 10px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+        
+        .error {
+            color: #d32f2f;
+            padding: 15px;
+            background: #ffebee;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #d32f2f;
+        }
+        
+        .success {
+            color: #388e3c;
+            padding: 15px;
+            background: #e8f5e9;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #388e3c;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .preview-container {
+            margin: 20px 0;
+            text-align: center;
+            position: relative;
+        }
+        
+        .preview-image {
+            max-width: 100%;
+            max-height: 350px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: 3px solid white;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 30px;
+            font-style: italic;
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+        
+        .explanation {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 25px;
+            border-radius: 12px;
+            margin: 30px 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border-left: 5px solid var(--accent);
+        }
+        
+        .explanation h3 {
+            color: var(--secondary);
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .explanation p {
+            line-height: 1.7;
+            font-size: 1.05rem;
+        }
+        
+        footer {
+            background: linear-gradient(135deg, var(--dark), #2d3436);
+            color: white;
+            text-align: center;
+            padding: 1.5rem;
+            margin-top: auto;
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+        }
+        
+        footer p {
+            margin: 0.5rem 0;
+        }
+        
+        .emoji {
+            font-size: 1.2em;
+            vertical-align: middle;
+        }
+        
+        .loading-spinner {
+            border: 4px solid rgba(106, 76, 147, 0.2);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .art-palette {
+            display: flex;
+            gap: 5px;
+            margin: 10px 0;
+        }
+        
+        .color-swatch {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .main-container {
+            padding: 0 20px 100px;
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🎨 ArtVision AI 🖌️</h1>
+        <p>Discover art masterpieces with <a href="https://developers.cloudflare.com/workers-ai/models/">Cloudflare Workers AI</a> and <a href="https://developers.cloudflare.com/vectorize/">Vectorize</a></p>
+    </header>
+    
+    <div class="main-container">
+        <div class="section">
+            <h2>🖼️ Add Artwork to Database</h2>
+            <label for="artworkUrl">Artwork Image URL:</label>
+            <input type="text" id="artworkUrl" placeholder="https://example.com/painting.jpg">
+            
+            <div class="preview-container hidden" id="previewContainer">
+                <img id="previewImage" class="preview-image" src="" alt="Artwork preview">
+            </div>
+            
+            <button onclick="addArtwork()">✨ Analyze and Add Artwork to the Vectorize vector database</button>
+            
+            <div id="addSuccess" class="success hidden"></div>
+            <div id="addError" class="error hidden"></div>
+        </div>
+        
+        <div class="section">
+            <h2>🔍 Search Artworks</h2>
+            <input type="text" id="searchQuery" placeholder="Describe what you're looking for (e.g. 'green landscape painting')">
+            <button onclick="searchArt()">🖌️ Search Artworks</button>
+            
+            <div id="searchResults" class="results"></div>
+            <div id="searchError" class="error hidden"></div>
+            <div id="searchLoading" class="loading hidden">
+                <div class="loading-spinner"></div>
+                <p>Analyzing artworks w/ Workers AI...</p>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>🎨 made w/ ❤️ in sf 🌁 w/ <a href="https://developers.cloudflare.com/workers-ai/models/">cloudflare workers ai</a> && <a href="https://developers.cloudflare.com/vectorize/">vectorize</a> 🖼️. <a href="https://github.com/elizabethsiegle/art-vector-search-cloudflare">Code👩🏻‍💻 on GH here</a></p>
+    </footer>
+    
+    <script>
+        // Preview image when URL is entered
+        document.getElementById('artworkUrl').addEventListener('input', function() {
+            const url = this.value.trim();
+            const previewContainer = document.getElementById('previewContainer');
+            const previewImage = document.getElementById('previewImage');
+            
+            if (url) {
+                try {
+                    new URL(url); // Validate URL
+                    previewImage.src = url;
+                    previewContainer.classList.remove('hidden');
+                } catch {
+                    previewContainer.classList.add('hidden');
+                }
+            } else {
+                previewContainer.classList.add('hidden');
+            }
+        });
+        
+        async function addArtwork() {
+            const artworkUrl = document.getElementById('artworkUrl').value.trim();
+            
+            if (!artworkUrl) {
+                showError('addError', '🖼️ Please enter an artwork URL');
+                return;
+            }
+            
+            try {
+                // Validate URL
+                new URL(artworkUrl);
+                
+                // Clear previous messages
+                document.getElementById('addError').classList.add('hidden');
+                document.getElementById('addSuccess').classList.remove('hidden');
+                document.getElementById('addSuccess').innerHTML = `
+                    <div class="loading-spinner"></div>
+                    <p>🔍 Analyzing artwork with AI...</p>
+                `;
+                
+                const response = await fetch('/embed', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ imageUrl: artworkUrl })
+                });
+                
+                const result = await response.json();
+                
+                if (result.error) {
+                    showError('addError', '❌ ' + result.error);
+                    document.getElementById('addSuccess').classList.add('hidden');
+                } else {
+                    if (result.description === "No description generated") {
+                        showError('addError', '🖌️ The AI had trouble analyzing this image. Please try a different artwork or URL.');
+                        document.getElementById('addSuccess').classList.add('hidden');
+                    } else {
+                        document.getElementById('addSuccess').innerHTML = `
+                            <p>🎉 <strong>Artwork added successfully!</strong></p>
+                            <div class="explanation">
+                                <h3>🖌️ AI Art Analysis:</h3>
+                                <p>${result.description}</p>
+                            </div>
+                        `;
+                        // Clear form
+                        document.getElementById('artworkUrl').value = '';
+                        document.getElementById('previewContainer').classList.add('hidden');
+                    }
+                }
+            } catch (error) {
+                showError('addError', '❌ Error adding artwork: ' + error.message);
+                document.getElementById('addSuccess').classList.add('hidden');
+            }
+        }
+        
+        async function searchArt() {
+            const query = document.getElementById('searchQuery').value.trim();
+            if (!query) {
+                showError('searchError', '🔍 Please enter a search query');
+                return;
+            }
+            
+            try {
+                // Show loading state
+                document.getElementById('searchError').classList.add('hidden');
+                document.getElementById('searchLoading').classList.remove('hidden');
+                document.getElementById('searchResults').innerHTML = '';
+                
+                const response = await fetch('/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ textQuery: query })
+                });
+                
+                const result = await response.json();
+                
+                // Hide loading
+                document.getElementById('searchLoading').classList.add('hidden');
+                
+                if (result.error) {
+                    showError('searchError', '❌ ' + result.error);
+                    return;
+                }
+                
+                displayResults(result);
+            } catch (error) {
+                document.getElementById('searchLoading').classList.add('hidden');
+                showError('searchError', "❌ Error searching artworks: " + error.message);
+            }
+        }
+        
+        function displayResults(result) {
+            const container = document.getElementById('searchResults');
+            
+            if (!result.matches || result.matches.length === 0) {
+                container.innerHTML = '<p class="error">🖼️ No artworks found matching "' + result.textQuery + '"</p>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            // Add explanation if available
+            if (result.explanation && result.explanation !== "Not enough matches for comparison") {
+                const explanationDiv = document.createElement('div');
+                explanationDiv.className = 'explanation';
+                explanationDiv.innerHTML = `
+                    <h3>🖌️ AI Art Comparison:</h3>
+                    <p>${result.explanation}</p>
+                `;
+                container.appendChild(explanationDiv);
+            }
+            
+            // Display matches
+            result.matches.forEach((match, index) => {
+                const card = document.createElement('div');
+                card.className = 'art-card';
+                card.innerHTML = `
+                    <img src="${match.url}" alt="Artwork ${index + 1}" loading="lazy">
+                    <div class="art-info">
+                        <div class="art-score">🎯 Match: ${(match.score * 100).toFixed(1)}%</div>
+                        <div class="art-title">🖼️ Artwork ${index + 1}</div>
+                        <div class="art-description">${match.description}</div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+        
+        function showError(elementId, message) {
+            const errorDiv = document.getElementById(elementId);
+            errorDiv.innerHTML = message;
+            errorDiv.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

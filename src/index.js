@@ -91,7 +91,14 @@ async function handleEmbedRequest(request, env) {
 	  
 	  const llavaResponse = await env.AI.run(
 		"@cf/llava-hf/llava-1.5-7b-hf",
-		llavaInput
+		llavaInput,
+		{
+			gateway: {
+				id: "art-vector",
+				skipCache: false,
+				cacheTtl: 3360,
+			},
+		}
 	  );
 	  
 	  console.log("Raw LLaVA response:", JSON.stringify(llavaResponse));
@@ -111,7 +118,14 @@ async function handleEmbedRequest(request, env) {
 	  // Step 3: Create text embeddings from the description
 	  const embeddings = await env.AI.run(
 		"@cf/baai/bge-base-en-v1.5",
-		{ text: [description] }
+		{ text: [description] },
+		{
+			gateway: {
+				id: "art-vector",
+				skipCache: false,
+				cacheTtl: 3360,
+			},
+		}
 	  );
 	  
 	  // Step 4: Store in vector database
@@ -213,12 +227,19 @@ async function handleEmbedRequest(request, env) {
 			${matches[1].description}
 			
 			Focus on visual similarities and artistic qualities.`
-		  }
+		  },
 		];
   
 		const llmResponse = await env.AI.run(
 		  "@cf/meta/llama-3.3-70b-instruct-fp8-fast", 
-		  { messages }
+		  { messages },
+		  {
+			gateway: {
+			  id: "art-vector",
+			  skipCache: false,
+			  cacheTtl: 3360,
+			},
+		  }
 		);
 		
 		explanation = llmResponse.response || "No comparison available";
